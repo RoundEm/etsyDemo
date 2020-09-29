@@ -1,12 +1,39 @@
 const express = require('express')
 const app = express()
 const fetch = require('node-fetch')
+const Sequelize = require("sequelize")
+require('dotenv').config()
 const port = 8888
 
-const keystring = '094cu0zpz075n15ievgsdxa7'
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+var sequelize = new Sequelize("etsy", "root", "password", {
+    host: "localhost",
+    port: 3306,
+    dialect: "mysql",
+})
+
+const EtsyItem = sequelize.define("etsyItem", {
+    listing_id: {
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+    },
+    title: Sequelize.STRING,
+    description: Sequelize.STRING,
+    url: Sequelize.STRING,
+    num_favorers: Sequelize.INTEGER,
+    // TODO: create separate table for these since etsy returns arrays
+    // tags: Sequelize.STRING,
+    // taxonomy_path: Sequelize.STRING
+}, {
+    timestamps: false
+})
+
+// EtsyItem.sync()
+
 // note i'm limiting the results to 5
-const listingsUrl = `https://openapi.etsy.com/v2/listings/active?api_key=${keystring}&limit=5`
-const sharedSecret = 'efdthsapsh'
+const listingsUrl = `https://openapi.etsy.com/v2/listings/active?api_key=${process.env.API_KEY}&limit=5`
 
 const listingsToSeed = []
 
@@ -20,17 +47,29 @@ fetch(listingsUrl)
             // also add your post calls to YOUR api here or just to get started
             // you can setup your db connection and just post these
             // straight to the db using sequelize
-            listingsToSeed.push({
+            EtsyItem.create({
                 listing_id: listing.listing_id,
                 title: listing.title,
                 description: listing.description,
-                tags: listing.tags,
+                // tags: listing.tags,
                 url: listing.url,
                 num_favorers: listing. num_favorers,
-                taxonomy_path: listing.taxonomy_path,
+                // taxonomy_path: listing.taxonomy_path,
+            }).then((results) => {
+                console.log('db results: ', results);
             })
+
+            // listingsToSeed.push({
+            //     listing_id: listing.listing_id,
+            //     title: listing.title,
+            //     description: listing.description,
+            //     tags: listing.tags,
+            //     url: listing.url,
+            //     num_favorers: listing. num_favorers,
+            //     taxonomy_path: listing.taxonomy_path,
+            // })
         })
-        console.log('listingsToSeed array: ', listingsToSeed)
+        // console.log('listingsToSeed array: ', listingsToSeed)
     })
     .catch(err => console.log('err: ', err))
 
